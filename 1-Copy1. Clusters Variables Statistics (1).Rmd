@@ -1,0 +1,139 @@
+---
+title: "Initial Data Statistics"
+output: html_document
+---
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(dplyr)
+library(pastecs)
+library(ggpubr)
+library(ggstatsplot)
+library(lares)
+```
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+```{r}
+# Read cluster variables dataset file
+df <- read.csv("clusters_variables.csv", row.names = 1)
+```
+
+```{r}
+# Calculate percentile rank of points values
+df_rank <- df %>% mutate(
+QD_M = perc.rank(QD_M),
+QD_PS = perc.rank(QD_PS),
+QD_L = perc.rank(QD_L),
+QD_EH = perc.rank(QD_EH),
+QD_R = perc.rank(QD_R),
+VABS_Com = perc.rank(VABS_Com),
+VABS_Aut = perc.rank(VABS_Aut),
+VABS_Soc = perc.rank(VABS_Soc),
+ADIR_Soc = perc.rank(ADIR_Soc),
+ADIR_RRB = perc.rank(ADIR_RRB),
+ADIR_AbDev = perc.rank(ADIR_AbDev)
+) 
+
+```
+
+```{r}
+# Dataset statistics summary
+summary(df)
+```
+
+```{r}
+# Total number of observation by column
+as.data.frame(colSums(!is.na(df)))
+```
+
+```{r}
+# Range of each variable 
+rng <- t(sapply(df, range,na.rm=TRUE))
+as.data.frame(rng)
+```
+```{r}
+# Mean of each variable
+me <- lapply(df, mean, na.rm=TRUE)
+as.data.frame(me)
+```
+
+
+```{r}
+# Standard deviation of each variable
+sd <- lapply(df, sd,na.rm=TRUE)
+as.data.frame(sd)
+```
+
+
+
+```{r}
+stat.desc(df, norm = TRUE)
+```
+
+```{r}
+# Histogram and Density plot 
+df_hist(df,1,3)
+df_dplot(df,1,3)
+```
+
+
+```{r}
+# Histogram and Density plot 
+df_hist(df,4,6)
+df_dplot(df, 4, 6)
+```
+
+```{r}
+# Histogram and Density plot 
+df_hist(df,7,11)
+df_dplot(df,7,11)
+```
+
+```{r}
+# Boxplot of all variables
+df_boxplot(df,1,11,0,170)
+```
+
+```{r}
+for (i in 1:12){
+  print(ggqqplot(df[,i]))
+  }
+```
+
+
+
+```{r}
+# Correlation plot
+
+# correlogram
+ggstatsplot::ggcorrmat(
+  data = df_rank,
+  type = "nonparametric", # parametric for Pearson, nonparametric for Spearman's correlation
+  colors = c("darkred", "white", "steelblue"), # change default colors
+  
+)
+```
+
+
+```{r}
+lares::corr_cross(df_rank)
+```
+
+```{r}
+lares::corr_cross(df_rank, # name of dataset
+  max_pvalue = 0.05, # display only significant correlations (at 5% level)
+  top = 10 # display top 10 couples of variables (by correlation coefficient)
+)
+```
+
+```{r}
+lares::corr_cross(df, type = 2, top = 50)
+```
+```{r}
+write.csv(df_rank,"perc_ranks_variables.csv")
+```

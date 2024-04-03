@@ -1,0 +1,125 @@
+---
+title: "Numeric Variables Imputation"
+output: html_document
+---
+
+```{r}
+# Load libraries 
+library(VIM)
+library(missForest)
+```
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+```{r}
+# Read cluster file
+df <- read.csv("clusters_variables.csv", row.names = 1)
+```
+
+
+```{r}
+# Percentage of missing observations by column
+as.data.frame(apply(df,2,pMiss)) 
+```
+
+```{r}
+# Percentage of missing observations by rows
+as.data.frame(apply(df,1,pMiss)) 
+```
+
+
+```{r}
+# Visualize data missing pattern 
+df_aggr = aggr(df, numbers=TRUE, sortVars=TRUE, labels=names(df), cex.axis=.45, gap=3, ylab=c("Proportion of missingness","Missingness Pattern"))
+```
+
+```{r}
+# Perform data imputation 
+set.seed(5)
+df_imputed <- missForest::missForest(df, verbose = TRUE)
+```
+```{r}
+#library(doParallel)
+#library(missForest)
+#library(doRNG)
+#library(tidyr)
+#library(foreach)
+
+#mtry_used <- c()
+#OOB_NRMSE <- c()
+#OOB_PFC <- c()
+
+#i <- 1
+
+#for (loop_seed in 1:5) {
+#  for (mtry in 2:11) { 
+#    print(paste0("seed = ", loop_seed, ", mtry = ", mtry))
+    
+#    doRNG::registerDoRNG(seed = loop_seed)
+#    doParallel::registerDoParallel(cores=3)
+ #   missForest_v3 <- missForest(df, 
+                                      #parallelize = 'forests', 
+                                      #ntree = 100, 
+                                      #maxiter = 3, 
+                                      #mtry = mtry)
+    
+    #OOB_NRMSE[i] <- missForest_v3$OOBerror[1]
+    #mtry_used[i] <- mtry
+    
+    #i <- i + 1
+  #}
+#}
+
+
+#mtry_df <- data.frame(mtry_used, OOB_NRMSE) %>%
+  #group_by(mtry_used) %>%
+  #summarize(`OOB NRMSE` = mean(OOB_NRMSE)) %>%
+  #gather("metric", "error", -mtry_used)
+```
+
+```{r}
+#write.csv(mtry_df, "mtry_df.csv", row.names = F)
+```
+
+```{r}
+#mtry_df <- read.csv("mtry_df.csv")
+
+#ggplot(mtry_df, aes(x = mtry_used, y = error, col = factor(metric))) + 
+  #geom_point() +
+  #geom_line() + 
+  #scale_x_continuous(breaks = seq(2, 20, 2)) + 
+  #scale_color_manual(values = c("deepskyblue", "mediumseagreen")) +
+  #facet_wrap(~ metric, scales = "free_y") + 
+  #theme(legend.position = "none", 
+        #axis.title.y = element_blank()) + 
+  #labs(x = "mtry")
+```
+```{r}
+# Run missForest with optimized parameters 
+#registerDoParallel(cores=3)
+#df_imputed <- missForest::missForest(df, parallelize = 'forests', verbose = T, mtry = 6, ntree #= 1000)
+```
+
+
+```{r}
+# Transform numeric values into integer
+#set.seed(123)
+df_imputed$ximp[1:11] <- lapply(df_imputed$ximp[1:11], as.integer)
+df_imputed
+```
+
+
+```{r}
+# Check if all missing values were imputed 
+df_imputed$ximp %>% filter(complete.cases(.))
+```
+
+
+
+```{r}
+# Save imputed data into csv. file
+write.csv(df_imputed$ximp,"clusters_variables_imputed.csv")
+```

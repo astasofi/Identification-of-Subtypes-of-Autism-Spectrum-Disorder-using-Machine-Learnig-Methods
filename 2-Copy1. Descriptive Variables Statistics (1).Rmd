@@ -1,0 +1,211 @@
+---
+title: "Categorization Variables"
+output: html_document
+---
+
+```{r}
+# Load libraries 
+library(tidyverse)
+library(dplyr)
+library(pastecs)
+library(ggpubr)
+library(ggstatsplot)
+```
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+```{r}
+# Read categorization variables dataset file
+df_cat <- read.csv("descriptive_variables.csv", row.names = 1)
+```
+
+```{r}
+# Calculate percentile rank of points values
+df_rank <- df_cat %>% mutate(
+QD_M = perc.rank(QD_M),
+QD_PS = perc.rank(QD_PS),
+QD_L = perc.rank(QD_L),
+QD_EH = perc.rank(QD_EH),
+QD_R = perc.rank(QD_R),
+VABS_Com = perc.rank(VABS_Com),
+VABS_Aut = perc.rank(VABS_Aut),
+VABS_Soc = perc.rank(VABS_Soc),
+ADIR_Soc = perc.rank(ADIR_Soc),
+ADIR_RRB = perc.rank(ADIR_RRB),
+ADIR_AbDev = perc.rank(ADIR_AbDev)
+) 
+
+```
+
+```{r}
+# Transform categorical variables into factores 
+
+df_cat$ADOS_Sev <- factor(
+  x = df_cat$ADOS_Sev,
+  levels = c('Autism', 'ASD', 'Non Spectrum')
+)
+
+df_cat$Dysmorphysm<- factor(
+  x = df_cat$Dysmorphysm,
+  levels = c("Yes","No")
+)
+
+df_cat$Language_Regr<- factor(
+  x = df_cat$Language_Regr,
+  levels = c("Yes","No")
+)
+
+df_cat$PMD_Delay<- factor(
+  x = df_cat$PMD_Delay,
+  levels = c("Yes","No")
+)
+
+df_cat$Gender<- factor(
+  x = df_cat$Gender,
+  levels = c("M","F")
+)
+
+df_cat$Verbal<- factor(
+  x = df_cat$Verbal,
+  levels = c("Yes","No")
+)
+
+df_cat$Audition<- factor(
+  x = df_cat$Audition,
+  levels = c("Normal","Abnormal")
+)
+
+df_cat$Vision<- factor(
+  x = df_cat$Vision,
+  levels = c("Normal","Abnormal")
+)
+
+df_cat$ADIR_quot<- factor(
+  x = df_cat$ADIR_quot,
+  levels = c("Positive","Negative")
+)
+
+df_cat$PMD_Regression <- factor(
+  x = df_cat$PMD_Regression,
+  levels = c("Yes","No")
+)
+
+df_cat$Psyc_Family_Hist <- factor(
+  x = df_cat$Psyc_Family_Hist,
+  levels = c("Yes","No")
+)
+
+```
+
+
+```{r}
+# Total number of observation by column
+as.data.frame(colSums((!is.na(df_cat))/661))
+```
+
+```{r}
+# Dataset statistics summary
+summary(df_cat)
+```
+```{r}
+stat.desc(df_cat[,c(12:18)], norm = TRUE)
+```
+
+
+
+```{r}
+# HC Histogram and Density plot
+df_hist(df_cat, 12,12)
+df_dplot(df_cat, 12,12)
+```
+
+
+```{r}
+# Histogram and Density plot
+df_hist(df_cat,13,14)
+df_dplot(df_cat,13,14)
+```
+
+
+
+```{r}
+# Histogram and Density plot
+df_hist(df_cat,15,15)
+df_dplot(df_cat,15,15)
+```
+
+
+
+```{r}
+# Histogram and Density plot
+df_hist(df_cat,16,18)
+df_dplot(df_cat,16,18)
+df_boxplot(df_cat,16,18,0,120)
+```
+
+```{r}
+# Create a vector of outliers for the variables First_Words_Age and First_Phrases_Age
+outliers_FW <- boxplot(df_cat$First_Words_Age, plot = FALSE)$out
+outliers_FP <- boxplot(df_cat$First_Phrases_Age,plot = FALSE)$out
+outliers_WA <- boxplot(df_cat$Walk_Age,plot = FALSE)$out
+```
+
+
+```{r}
+# Replace the outlieres values with NA
+df_cat[df_cat$First_Phrases_Age %in% outliers_FP, "First_Phrases_Age"] = NA
+df_cat$First_Phrases_Age <- as.numeric(df_cat$First_Phrases_Age )
+df_cat[df_cat$First_Words_Age %in% outliers_FW, "First_Words_Age"] = NA
+df_cat$First_Words_Age <- as.numeric(df_cat$First_Words_Age)
+df_cat[df_cat$Walk_Age %in% outliers_WA, "Walk_Age"] = NA
+df_cat$Walk_Age <- as.numeric(df_cat$Walk_Age)
+```
+
+```{r}
+as.data.frame(colSums((!is.na(df_cat))))
+```
+
+```{r}
+# Range of values for each variable
+rng <- t(sapply(df_cat[,c(12:18)], range,na.rm=TRUE))
+as.data.frame(rng)
+```
+```{r}
+# Standard deviation of each variable
+sd <- lapply(df_cat[,c(12:18)], sd,na.rm=TRUE)
+as.data.frame(sd)
+```
+```{r}
+# Mean of each variable
+mn <- lapply(df_cat[,c(12:18)], mean,na.rm=TRUE)
+as.data.frame(mn)
+```
+
+
+```{r}
+for (i in 12:18){
+  print(ggqqplot(df_cat[,i]))
+  }
+```
+
+```{r}
+# Correlation plot
+
+# correlogram
+ggstatsplot::ggcorrmat(
+  data = df_rank[,c(1:29)],
+  type = "spearman", # parametric for Pearson, nonparametric for Spearman's correlation
+  colors = c("darkred", "white", "steelblue"), # change default colors
+  
+)
+```
+
+
+```{r}
+# save dataframe alterations into csv. file
+write.csv(df_cat,"descriptive_variables.csv")
+```
+

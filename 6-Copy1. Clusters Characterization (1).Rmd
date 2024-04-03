@@ -1,0 +1,170 @@
+---
+title: "Clusters Categorization"
+output: html_document
+---
+
+```{r}
+# Load libraries
+library(tidyverse)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+### Load Dataset
+
+```{r}
+# Read cluster file
+df <- read.csv("clusters_results.csv", row.names = 1)
+df_cat <- read.csv("descriptive_variables.csv", row.names = 1)
+```
+
+```{r}
+# Transform categorical variables into factores 
+
+df_cat$ADOS_Sev <- factor(
+  x = df_cat$ADOS_Sev,
+  levels = c('Autism', 'ASD', 'Non Spectrum')
+)
+
+df_cat$Dysmorphysm<- factor(
+  x = df_cat$Dysmorphysm,
+  levels = c("Yes","No")
+)
+
+df_cat$Language_Regr<- factor(
+  x = df_cat$Language_Regr,
+  levels = c("Yes","No")
+)
+
+df_cat$PMD_Delay<- factor(
+  x = df_cat$PMD_Delay,
+  levels = c("Yes","No")
+)
+
+df_cat$Gender<- factor(
+  x = df_cat$Gender,
+  levels = c("M","F")
+)
+
+df_cat$Verbal<- factor(
+  x = df_cat$Verbal,
+  levels = c("Yes","No")
+)
+
+df_cat$Audition<- factor(
+  x = df_cat$Audition,
+  levels = c("Normal","Abnormal")
+)
+
+df_cat$Vision<- factor(
+  x = df_cat$Vision,
+  levels = c("Normal","Abnormal")
+)
+
+df_cat$ADIR_quot<- factor(
+  x = df_cat$ADIR_quot,
+  levels = c("Positive","Negative")
+)
+
+df_cat$PMD_Regression <- factor(
+  x = df_cat$PMD_Regression,
+  levels = c("Yes","No")
+)
+
+df_cat$Psyc_Family_Hist <- factor(
+  x = df_cat$Psyc_Family_Hist,
+  levels = c("Yes","No")
+)
+
+```
+
+```{r}
+# Merge datasets
+df_cat = merge(df_cat, df[c("Cluster")], by = 0)
+```
+
+```{r}
+# Convert all columns to factor
+df_cat <- as.data.frame(unclass(df_cat),                     
+                       stringsAsFactors = TRUE)
+```
+
+```{r}
+drop_row_names <- c("Row.names")
+df_cat = df_cat[,!(names(df_cat) %in% drop_row_names)]
+```
+
+```{r}
+cluster.1 <- df %>% filter(Cluster == 1)
+cluster.2 <- df %>% filter(Cluster == 2)
+cluster.3 <- df %>% filter(Cluster == 3)
+```
+
+
+```{r}
+as.data.frame(df_stat(cluster.1))
+```
+```{r}
+as.data.frame(df_stat(cluster.2))
+```
+```{r}
+as.data.frame(df_stat(cluster.3))
+```
+
+```{r}
+kw_test(df,1,11)
+```
+
+```{r}
+cls.1 <- df_cat %>% filter(Cluster == 1)
+cls.2 <- df_cat %>% filter(Cluster == 2)
+cls.3 <- df_cat %>% filter(Cluster == 3)
+```
+
+```{r}
+as.data.frame(df_stat(cls.1))
+```
+
+```{r}
+as.data.frame(df_stat(cls.2))
+```
+
+```{r}
+as.data.frame(df_stat(cls.3))
+```
+
+```{r}
+df_fisher(df_cat)
+```
+
+```{r}
+target_var <- c(1:11)
+group_var <- c(30)
+
+# get combinations of variables in a dataset
+df1 = expand.grid(target_var, group_var, stringsAsFactors = F)
+
+# apply the function (prop.table etc.) to those combinations
+map2(df1$Var1, df1$Var2, ~prop.table(table(df_cat[, .x], df_cat[, .y]), 2))
+```
+
+
+
+
+```{r}
+kw_test(df_cat,12,29)
+```
+
+
+
+
+
+
+
+
+
+
+

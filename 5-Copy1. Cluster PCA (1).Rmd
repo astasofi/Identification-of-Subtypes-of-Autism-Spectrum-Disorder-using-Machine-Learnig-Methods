@@ -1,0 +1,209 @@
+---
+title: "Cluster PCA"
+output: html_document
+---
+
+
+```{r}
+# Load libraries
+library(tidyverse)
+library(dplyr)
+library(corrplot)
+library(FactoMineR)
+library(factoextra)
+library(fpc)
+library(ggplot2)
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+source("Functions.R")
+```
+
+### Load Dataset
+
+```{r}
+# Read imputed values file
+df <- read.csv("clusters_variables_imputed.csv", row.names = 1)
+```
+
+
+```{r}
+# Calculate percentile rank of points values
+df_rank <- df %>% mutate(
+QD_M = perc.rank(QD_M),
+QD_PS = perc.rank(QD_PS),
+QD_L = perc.rank(QD_L),
+QD_EH = perc.rank(QD_EH),
+QD_R = perc.rank(QD_R),
+VABS_Com = perc.rank(VABS_Com),
+VABS_Aut = perc.rank(VABS_Aut),
+VABS_Soc = perc.rank(VABS_Soc),
+ADIR_Soc = perc.rank(ADIR_Soc),
+ADIR_RRB = perc.rank(ADIR_RRB),
+ADIR_AbDev = perc.rank(ADIR_AbDev)
+) 
+
+```
+
+### Perform PCA 
+
+```{r}
+# Principal Component object (using )
+set.seed(123)
+res.pca <- FactoMineR::PCA(df_rank, graph = FALSE)
+
+# Eigenvalues for Dimensions variability explained
+eigenvalues <- get_eig(res.pca)
+eigenvalues
+```
+
+
+```{r}
+fviz_eig(res.pca, addlabels = TRUE, ylim = c(0, 100))
+```
+
+```{r}
+var <- get_pca_var(res.pca)
+var
+```
+
+```{r}
+# Contributions to the principal components
+var$contrib
+```
+
+```{r}
+res.pca$var
+```
+```{r}
+pca_corr <- as.data.frame(res.pca$var$cor)
+pca_corr <- pca_corr[order(pca_corr$Dim.5, decreasing = TRUE),]
+pca_corr
+```
+
+```{r}
+pca_cont <- as.data.frame(res.pca$var$contrib)
+pca_cont <- pca_cont[order(pca_cont$Dim.4, decreasing = TRUE),]
+pca_cont
+```
+
+
+### Contributions of variables to PCs
+
+```{r}
+# Variables that are correlated with PC1 (i.e., Dim.1) and PC2 (i.e., Dim.2) are the most important in explaining the variability in the data set.
+# Variables that do not correlated with any PC or correlated with the last dimensions are variables with low contribution and might be removed to simplify the overall analysis.
+
+# Highlight the most contributing variables for each dimension:
+corrplot(res.pca$var$contrib, is.corr=FALSE)
+```
+
+
+```{r}
+# Contributions of variables to PC1
+fviz_contrib(res.pca, choice = "var", axes = 1, top = 10)
+
+# Contributions of variables to PC2
+fviz_contrib(res.pca, choice = "var", axes = 2, top = 10)
+```
+
+```{r}
+# The total contribution to PC1 and PC2 
+fviz_contrib(res.pca, choice = "var", axes = 1:2, top = 10)
+```
+
+```{r}
+# The most important (or, contributing) variables can be highlighted on the correlation plot 
+fviz_pca_var(res.pca, col.var = "contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"))
+```
+
+
+### HC 
+
+```{r}
+# Compute PCA
+res.pca <- FactoMineR::PCA(df_rank, ncp = 5, graph = FALSE)
+# Compute hierarchical clustering on principal components
+res.hcpc <- FactoMineR::HCPC(res.pca,  metric="euclidean", method="ward", 
+                             kk= Inf, min = 3, max = 10,
+                             nb.clust = -1, description = TRUE, 
+                             consol = TRUE)
+```
+
+
+```{r}
+set.seed(123)
+clusterboot(df, 1000, clustermethod = HCPCCBI)
+```
+
+
+```{r}
+fviz_cluster(res.hcpc,
+repel = TRUE, # Avoid label overlapping
+show.clust.cent = TRUE, # Show cluster centers
+palette = "jco", # Color palette see ?ggpubr::ggpar
+ggtheme = theme_minimal(),
+main = "Factor map"
+)
+```
+
+```{r}
+# Principal components + tree
+plot(res.hcpc, choice = "3D.map")
+```
+```{r}
+res.hcpc$desc.var
+```
+
+
+```{r}
+head(res.hcpc$data.clust, 10)
+```
+```{r}
+df_clust <- cbind(df, Cluster = res.hcpc$data.clust$clust)
+```
+
+```{r}
+ind.p <- fviz_pca_ind(res.pca, geom = "point", col.ind = df_clust$Cluster)
+ggpubr::ggpar(ind.p,
+title = "Principal Component Analysis",
+subtitle = "Data set",
+caption = "Source: factoextra",
+xlab = "PC1", ylab = "PC2",
+legend.title = "Clusters", legend.position = "top",
+ggtheme = theme_gray(), palette = "jco"
+)
+
+```
+```{r}
+fviz_pca_biplot(res.pca,
+col.ind = df_clust$Cluster, palette = "jco",
+addEllipses = TRUE, label = "var",
+col.var = "black", repel = TRUE,
+legend.title = "Clusters")
+```
+```{r}
+qplot(c(1:10),res.hcpc$call$t$within[0:10]) + 
+  geom_line() + 
+  xlab("Number of clusters") + 
+  ylab("Within Cluster Variance") +
+  ggtitle("Scree Plot") +
+  scale_y_continuous(breaks=seq(0, 12, 1)) + 
+  scale_x_continuous(breaks=seq(1, 10, 1))
+```
+
+```{r}
+plot(res.hcpc$call$t$inert.gain[0:10], col = 'red', xlab = "Number of clusters", ylab = "Inertia Gain", type = 'b')
+```
+```{r}
+write.csv(df_clust,"clusters_results.csv")
+```
+
+
+
+
+
+
+
